@@ -13,7 +13,7 @@ type Cache struct {
 	OnEvicted func(key string, value Value) // 某条记录被移除时的回调函数
 }
 
-// entry 是双向链表的节点的数据类型
+// entry：双向链表的节点的数据类型
 // 所以我们这次实现的LRU底层结构是双向链表
 type entry struct {
 	// 在链表中仍保存每个值对应的 key 的好处在于：淘汰队首节点时，需要用 key 从字典中删除对应的映射
@@ -21,13 +21,13 @@ type entry struct {
 	value Value
 }
 
-// 实现Value 接口的任意类型
+// Value：实现Value 接口的任意类型
 type Value interface {
 	// 接口只包含了一个方法 Len() int，用于返回值所占用的内存大小
 	Len() int
 }
 
-// 方便实例化Cache，实现New函数
+// New：方便实例化Cache，实现New函数
 // 传入参数有maxData，和一个onEvicted 方法
 func New(maxData int64, onEvicted func(string, Value)) *Cache {
 	return &Cache{
@@ -38,7 +38,7 @@ func New(maxData int64, onEvicted func(string, Value)) *Cache {
 	}
 }
 
-// 实现查找功能
+// Get：实现获取功能
 // 根据key进行value的查找，并返回一个是否查找成功的标志
 // 根据LRU，将查找之后的节点移动到维护的双向队列的队尾（最久没有访问的放到队头）
 func (c *Cache) Get(key string) (value Value, ok bool) {
@@ -52,7 +52,7 @@ func (c *Cache) Get(key string) (value Value, ok bool) {
 	return
 }
 
-// 实现删除功能
+// RemoveOldest ：实现删除功能
 // 根据LRU，移除最近最少访问节点即可，即移除队首元素即可
 func (c *Cache) RemoveOldest() {
 	ele := c.list.Back() // 取队首节点
