@@ -1,7 +1,8 @@
-package carrotCache
+package http
 
 import (
 	"fmt"
+	"github.com/Dongxiem/carrotCache"
 	pb "github.com/Dongxiem/carrotCache/cachepb"
 	"github.com/Dongxiem/carrotCache/consistenthash"
 	"github.com/Dongxiem/carrotCache/peers"
@@ -68,7 +69,7 @@ func (p *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	groupName := parts[0]
 	key := parts[1]
 	// 通过 groupname 得到 group 实例
-	group := GetGroup(groupName)
+	group := carrotCache.GetGroup(groupName)
 	if group == nil {
 		http.Error(w, "no such group: "+groupName, http.StatusNotFound)
 		return
