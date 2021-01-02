@@ -21,7 +21,7 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Request包含的一些字段：
-// group 和 cache这与我们之前定义的接口 /_geecache/<group>/<name> 所需的参数吻合
+// group 和 cache这与我们之前定义的接口 /_carrotCache/<group>/<name> 所需的参数吻合
 type Request struct {
 	Group                string   `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
 	Key                  string   `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`

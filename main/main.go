@@ -12,6 +12,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/Dongxiem/carrotCache"
+	h "github.com/Dongxiem/carrotCache/http"
 	"log"
 	"net/http"
 )
@@ -34,10 +35,10 @@ func createGroup() *carrotCache.Group {
 }
 
 func startCacheServer(addr string, addrs []string, cache *carrotCache.Group) {
-	peers := cache.NewHTTPPool(addr)
+	peers := h.NewHTTPPool(addr)
 	peers.Set(addrs...)
 	cache.RegisterPeers(peers)
-	log.Println("geecache is running at", addr)
+	log.Println("carrotCache is running at", addr)
 	log.Fatal(http.ListenAndServe(addr[7:], peers))
 }
 
@@ -62,7 +63,7 @@ func startAPIServer(apiAddr string, cache *carrotCache.Group) {
 func main() {
 	var port int
 	var api bool
-	flag.IntVar(&port, "port", 8001, "Cocache server port")
+	flag.IntVar(&port, "port", 8001, "carrotCache server port")
 	flag.BoolVar(&api, "api", false, "Start a api server?")
 	flag.Parse()
 

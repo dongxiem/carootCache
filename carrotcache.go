@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/Dongxiem/carrotCache/byteview"
 	pb "github.com/Dongxiem/carrotCache/cachepb"
-	"github.com/Dongxiem/carrotCache/concurrentcache"
+	concurrentcache "github.com/Dongxiem/carrotCache/concurrentcache"
 	peers2 "github.com/Dongxiem/carrotCache/peers"
 	"github.com/Dongxiem/carrotCache/singleflight"
 	"log"
@@ -16,7 +16,7 @@ import (
 type Group struct {
 	name      string      // 每个 Group 拥有一个唯一的名称 name
 	getter    Getter      // 缓存未命中时获取源数据的回调(callback)
-	mainCache concurrentcache.cache // 一开始实现的并发缓存
+	mainCache concurrentcache.Cache // 一开始实现的并发缓存
 	peers     peers2.PeerPicker
 	// use singleflight.Group to make sure that
 	// each key is only fetched once
@@ -53,7 +53,7 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 	g := &Group{
 		name:      name,
 		getter:    getter,
-		mainCache: concurrentcache.cache.cache{cacheBytes: cacheBytes},
+		mainCache: concurrentcache.Cache{CacheBytes: cacheBytes},
 		loader:    &singleflight.Group{},
 	}
 	groups[name] = g
@@ -77,7 +77,7 @@ func (g *Group) Get(key string) (byteview.ByteView, error) {
 	}
 
 	// 从 mainCache 中查找缓存，如果存在则返回缓存值
-	if v, ok := g.mainCache.get(key); ok {
+	if v, ok := g.mainCache.Get(key); ok {
 		log.Println("[GoCache] hit")
 		return v, nil
 	}
@@ -121,7 +121,7 @@ func (g *Group) load(key string) (value byteview.ByteView, err error) {
 // 添加数据进cache
 func (g *Group) populateCache(key string, value byteview.ByteView) {
 	// 添加到当前group对应的cache中
-	g.mainCache.add(key, value)
+	g.mainCache.Add(key, value)
 }
 
 // 缓存不存在时，调用回调函数获取源数据
@@ -133,7 +133,7 @@ func (g *Group) getLocally(key string) (byteview.ByteView, error) {
 
 	}
 	// 通过ByteView中的cloneBytes方法赋值一份数据并赋值给value
-	value := byteview.ByteView{b: byteview.cloneBytes(bytes)}
+	value := byteview.ByteView{B: byteview.CloneBytes(bytes)}
 	// 并且将源数据添加到缓存 mainCache 中
 	g.populateCache(key, value)
 	return value, nil
@@ -150,5 +150,5 @@ func (g *Group) getFromPeer(peer peers2.PeerGetter, key string) (byteview.ByteVi
 	if err != nil {
 		return byteview.ByteView{}, err
 	}
-	return byteview.ByteView{b: res.Value}, nil
+	return byteview.ByteView{B: res.Value}, nil
 }
