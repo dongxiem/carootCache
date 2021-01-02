@@ -1,7 +1,6 @@
 package carrotCache
 
-// 主要完成缓存值的抽象与封装
-// ByteView 只有一个数据成员，b []byte，b 将会存储真实的缓存值
+// ByteView 主要完成缓存值的抽象与封装，只有一个数据成员，b []byte，b 将会存储真实的缓存值
 // 选择 byte 类型是为了能够支持任意的数据类型的存储，例如字符串、图片等
 type ByteView struct {
 	b []byte
