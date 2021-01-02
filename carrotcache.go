@@ -2,7 +2,10 @@ package carrotCache
 
 import (
 	"fmt"
+	"github.com/Dongxiem/carrotCache/byteview"
 	pb "github.com/Dongxiem/carrotCache/cachepb"
+	"github.com/Dongxiem/carrotCache/concurrentcache"
+	peers2 "github.com/Dongxiem/carrotCache/peers"
 	"github.com/Dongxiem/carrotCache/singleflight"
 	"log"
 	"sync"
@@ -13,8 +16,8 @@ import (
 type Group struct {
 	name      string      // 每个 Group 拥有一个唯一的名称 name
 	getter    Getter      // 缓存未命中时获取源数据的回调(callback)
-	mainCache cache.cache // 一开始实现的并发缓存
-	peers     PeerPicker
+	mainCache concurrentcache.cache // 一开始实现的并发缓存
+	peers     peers2.PeerPicker
 	// use singleflight.Group to make sure that
 	// each key is only fetched once
 	loader *singleflight.Group	// 用于防止缓存击穿
@@ -50,7 +53,7 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 	g := &Group{
 		name:      name,
 		getter:    getter,
-		mainCache: cache.cache{cacheBytes: cacheBytes},
+		mainCache: concurrentcache.cache.cache{cacheBytes: cacheBytes},
 		loader:    &singleflight.Group{},
 	}
 	groups[name] = g
@@ -67,10 +70,10 @@ func GetGroup(name string) *Group {
 }
 
 // 通过key去cache取相对应的value
-func (g *Group) Get(key string) (ByteView, error) {
+func (g *Group) Get(key string) (byteview.ByteView, error) {
 	// 如果key为空
 	if key == "" {
-		return ByteView{}, fmt.Errorf("key is required")
+		return byteview.ByteView{}, fmt.Errorf("key is required")
 	}
 
 	// 从 mainCache 中查找缓存，如果存在则返回缓存值
@@ -84,7 +87,7 @@ func (g *Group) Get(key string) (ByteView, error) {
 
 // RegisterPeers registers a PeerPicker for choosing remote peer
 // 实现了 PeerPicker 接口的 HTTPPool 注入到 Group 中
-func (g *Group) RegisterPeers(peers PeerPicker) {
+func (g *Group) RegisterPeers(peers peers2.PeerPicker) {
 	if g.peers != nil {
 		panic("RegisterPeerPicker called more than once")
 	}
@@ -92,7 +95,7 @@ func (g *Group) RegisterPeers(peers PeerPicker) {
 }
 
 // 进行数据获取
-func (g *Group) load(key string) (value ByteView, err error) {
+func (g *Group) load(key string) (value byteview.ByteView, err error) {
 	// each key is only fetched once (either locally or remotely)
 	// regardless of the number of concurrent callers.
 	// 使用 g.loader.Do进行包装，确保了并发场景下针对相同的 key，load 过程只会调用一次
@@ -110,34 +113,34 @@ func (g *Group) load(key string) (value ByteView, err error) {
 		return g.getLocally(key)
 	})
 	if err == nil {
-		return viewi.(ByteView), nil
+		return viewi.(byteview.ByteView), nil
 	}
 	return
 }
 
 // 添加数据进cache
-func (g *Group) populateCache(key string, value ByteView) {
+func (g *Group) populateCache(key string, value byteview.ByteView) {
 	// 添加到当前group对应的cache中
 	g.mainCache.add(key, value)
 }
 
 // 缓存不存在时，调用回调函数获取源数据
-func (g *Group) getLocally(key string) (ByteView, error) {
+func (g *Group) getLocally(key string) (byteview.ByteView, error) {
 	// 调用用户回调函数 g.getter.Get() 获取源数据
 	bytes, err := g.getter.Get(key)
 	if err != nil {
-		return ByteView{}, err
+		return byteview.ByteView{}, err
 
 	}
 	// 通过ByteView中的cloneBytes方法赋值一份数据并赋值给value
-	value := ByteView{b: cloneBytes(bytes)}
+	value := byteview.ByteView{b: byteview.cloneBytes(bytes)}
 	// 并且将源数据添加到缓存 mainCache 中
 	g.populateCache(key, value)
 	return value, nil
 }
 
 // 使用实现了 PeerGetter 接口的 httpGetter 从访问远程节点，获取缓存值。
-func (g *Group) getFromPeer(peer PeerGetter, key string) (ByteView, error) {
+func (g *Group) getFromPeer(peer peers2.PeerGetter, key string) (byteview.ByteView, error) {
 	req := &pb.Request{
 		Group: g.name,
 		Key:   key,
@@ -145,7 +148,7 @@ func (g *Group) getFromPeer(peer PeerGetter, key string) (ByteView, error) {
 	res := &pb.Response{}
 	err := peer.Get(req, res)
 	if err != nil {
-		return ByteView{}, err
+		return byteview.ByteView{}, err
 	}
-	return ByteView{b: res.Value}, nil
+	return byteview.ByteView{b: res.Value}, nil
 }

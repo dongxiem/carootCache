@@ -1,6 +1,7 @@
-package carrotCache
+package concurrentcache
 
 import (
+	"github.com/Dongxiem/carrotCache/byteview"
 	"github.com/Dongxiem/carrotCache/lru"
 	"sync"
 )
@@ -13,7 +14,7 @@ type cache struct {
 }
 
 // add：键值对添加
-func (c *cache) add(key string, value ByteView) {
+func (c *cache) add(key string, value byteview.ByteView) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	// 懒加载，进行实例化 lru
@@ -26,7 +27,7 @@ func (c *cache) add(key string, value ByteView) {
 }
 
 // get：根据键得到值
-func (c *cache) get(key string) (value ByteView, ok bool) {
+func (c *cache) get(key string) (value byteview.ByteView, ok bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.lru == nil {
@@ -34,7 +35,7 @@ func (c *cache) get(key string) (value ByteView, ok bool) {
 	}
 	// 去lru当中找，找到则返回ByteView的只读数据
 	if v, ok := c.lru.Get(key); ok {
-		return v.(ByteView), ok
+		return v.(byteview.ByteView), ok
 	}
 	return
 }

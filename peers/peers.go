@@ -1,4 +1,4 @@
-package carrotCache
+package peers
 
 import pb "github.com/Dongxiem/carrotCache/cachepb"
 
