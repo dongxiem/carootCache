@@ -1,7 +1,7 @@
-package gocache
+package carrotCache
 
 import (
-	"gocache/lru"
+	"carrotCache/lru"
 	"sync"
 )
 
@@ -36,6 +36,5 @@ func (c *cache) get(key string) (value ByteView, ok bool) {
 	if v, ok := c.lru.Get(key); ok {
 		return v.(ByteView), ok
 	}
-
 	return
 }
