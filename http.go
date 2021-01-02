@@ -4,6 +4,7 @@ import (
 	"fmt"
 	pb "github.com/Dongxiem/carrotCache/cachepb"
 	"github.com/Dongxiem/carrotCache/consistenthash"
+	"github.com/Dongxiem/carrotCache/peers"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -107,7 +108,7 @@ func (p *HTTPPool) Set(peers ...string) {
 }
 
 // PickPeer : 根据传入的key挑选一个节点
-func (p *HTTPPool) PickPeer(key string) (PeerGetter, bool) {
+func (p *HTTPPool) PickPeer(key string) (peers.PeerGetter, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if peer := p.peers.Get(key); peer != "" && peer != p.self {
@@ -117,7 +118,7 @@ func (p *HTTPPool) PickPeer(key string) (PeerGetter, bool) {
 	return nil, false
 }
 
-var _ PeerPicker = (*HTTPPool)(nil)
+var _ peers.PeerPicker = (*HTTPPool)(nil)
 
 type httpGetter struct {
 	baseURL string
@@ -155,4 +156,4 @@ func (h *httpGetter) Get(in *pb.Request, out *pb.Response) error {
 	return nil
 }
 
-var _ PeerGetter = (*httpGetter)(nil)
+var _ peers.PeerGetter = (*httpGetter)(nil)
