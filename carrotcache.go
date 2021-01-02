@@ -2,8 +2,8 @@ package carrotCache
 
 import (
 	"fmt"
-	pb "carrotCache/gocachepb"
-	"carrotCache/singleflight"
+	pb "github.com/Dongxiem/carrotCache/cachepb"
+	"github.com/Dongxiem/carrotCache/singleflight"
 	"log"
 	"sync"
 )
@@ -11,9 +11,9 @@ import (
 // 主要负责与外部交互，控制缓存存储和获取的主流程
 // 一个 Group 可以认为是一个缓存的命名空间
 type Group struct {
-	name      string // 每个 Group 拥有一个唯一的名称 name
-	getter    Getter // 缓存未命中时获取源数据的回调(callback)
-	mainCache cache  // 一开始实现的并发缓存
+	name      string      // 每个 Group 拥有一个唯一的名称 name
+	getter    Getter      // 缓存未命中时获取源数据的回调(callback)
+	mainCache cache.cache // 一开始实现的并发缓存
 	peers     PeerPicker
 	// use singleflight.Group to make sure that
 	// each key is only fetched once
@@ -50,7 +50,7 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 	g := &Group{
 		name:      name,
 		getter:    getter,
-		mainCache: cache{cacheBytes: cacheBytes},
+		mainCache: cache.cache{cacheBytes: cacheBytes},
 		loader:    &singleflight.Group{},
 	}
 	groups[name] = g

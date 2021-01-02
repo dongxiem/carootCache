@@ -1,7 +1,7 @@
 package carrotCache
 
 import (
-	"carrotCache/lru"
+	"github.com/Dongxiem/carrotCache/lru"
 	"sync"
 )
 

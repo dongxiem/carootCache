@@ -1,9 +1,9 @@
 package carrotCache
 
 import (
-	"carrotCache/consistenthash"
-	pb "carrotCache/gocachepb"
 	"fmt"
+	pb "github.com/Dongxiem/carrotCache/cachepb"
+	"github.com/Dongxiem/carrotCache/consistenthash"
 	"io/ioutil"
 	"log"
 	"net/http"

@@ -1,6 +1,6 @@
 package carrotCache
 
-import pb "carrotCache/gocachepb"
+import pb "github.com/Dongxiem/carrotCache/cachepb"
 
 // 主要是抽象出 2 个接口
 
@@ -14,6 +14,6 @@ type PeerPicker interface {
 // PeerGetter is the interface that must be implemented by a peer.
 // PeerGetter ：该方法用于从对应 group 查找缓存值。
 type PeerGetter interface {
-	// 第二个参数使用 gocachepb.pb.go 中的数据类型
+	// 第二个参数使用 cachepb.pb.go 中的数据类型
 	Get(in *pb.Request, out *pb.Response) error
 }
