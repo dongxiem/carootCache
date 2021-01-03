@@ -21,8 +21,11 @@ var db = map[string]string{
 	"Tom":  "630",
 	"Jack": "589",
 	"Sam":  "567",
+	"Lily": "589",
+	"Pity":  "567",
 }
 
+// createGroup : 创建 Group
 func createGroup() *carrotCache.Group {
 	return carrotCache.NewGroup("scores", 2<<10, carrotCache.GetterFunc(
 		func(key string) ([]byte, error) {
@@ -34,6 +37,7 @@ func createGroup() *carrotCache.Group {
 		}))
 }
 
+// startCacheServer ： 开启 Cache 服务
 func startCacheServer(addr string, addrs []string, cache *carrotCache.Group) {
 	peers := h.NewHTTPPool(addr)
 	peers.Set(addrs...)
@@ -42,6 +46,7 @@ func startCacheServer(addr string, addrs []string, cache *carrotCache.Group) {
 	log.Fatal(http.ListenAndServe(addr[7:], peers))
 }
 
+// startAPIServer ： 开启 API 服务
 func startAPIServer(apiAddr string, cache *carrotCache.Group) {
 	http.Handle("/api", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -69,9 +74,9 @@ func main() {
 
 	apiAddr := "http://localhost:9999"
 	addrMap := map[int]string{
-		8001: "http://localhost:8001",
-		8002: "http://localhost:8002",
-		8003: "http://localhost:8003",
+		8001: "http://localhost:8011",
+		8002: "http://localhost:8012",
+		8003: "http://localhost:8013",
 	}
 
 	var addrs []string
