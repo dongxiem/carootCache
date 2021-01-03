@@ -20,7 +20,7 @@ import (
 // 如果一个节点启动了 HTTP 服务，那么这个节点就可以被其他节点访问。
 // 主要为基于http提供被其他节点访问的能力
 const (
-	defaultBasePath = "/_carrotcache/"
+	defaultBasePath = "/carrotCache/"
 	defaultReplicas = 50
 )
 
@@ -28,7 +28,7 @@ const (
 type HTTPPool struct {
 	// this peer's base URL, e.g. "https://example.net:8000"
 	self     string              // 用来记录自己的地址，包括主机名/IP 和端口
-	basePath string              // 作为节点间通讯地址的前缀，默认是 /_gocache/
+	basePath string              // 作为节点间通讯地址的前缀，默认是 /_carrotCache/
 	mu       sync.Mutex          // guards peers and httpGetters
 	peers    *consistenthash.Map // 类型是一致性哈希算法的 Map，用来根据具体的 key 选择节点。
 
