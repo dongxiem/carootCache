@@ -24,7 +24,7 @@ const (
 	defaultReplicas = 50
 )
 
-// HTTPPool 既具备了提供 HTTP 服务的能力，也具备了根据具体的 key，创建 HTTP 客户端从远程节点获取缓存值的能力
+// HTTPPool：既具备了提供 HTTP 服务的能力，也具备了根据具体的 key，创建 HTTP 客户端从远程节点获取缓存值的能力
 type HTTPPool struct {
 	// this peer's base URL, e.g. "https://example.net:8000"
 	self     string              // 用来记录自己的地址，包括主机名/IP 和端口
@@ -38,7 +38,7 @@ type HTTPPool struct {
 	httpGetters map[string]*httpGetter
 }
 
-// NewHTTPPool : 为每个节点初始化HTTP池
+// NewHTTPPool: 为每个节点初始化HTTP池
 func NewHTTPPool(self string) *HTTPPool {
 	return &HTTPPool{
 		self:     self,
@@ -93,7 +93,7 @@ func (p *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
-// Set ：该方法实例化了一致性哈希算法，并且添加了传入的节点
+// Set：该方法实例化了一致性哈希算法，并且添加了传入的节点
 func (p *HTTPPool) Set(peers ...string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
