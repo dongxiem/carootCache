@@ -2,8 +2,6 @@ package peers
 
 import pb "github.com/Dongxiem/carrotCache/cachepb"
 
-// 主要是抽象出 2 个接口
-
 // PeerPicker：这是一个接口，根据传入的 key 选择相应节点 PeerGetter。
 type PeerPicker interface {
 	PickPeer(key string) (peer PeerGetter, ok bool)

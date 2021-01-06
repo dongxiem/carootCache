@@ -4,7 +4,7 @@ import (
 	"container/list"
 )
 
-// 创建结构体 Cache，方便实现后续的增改删查工作
+// Cache：创建结构体 方便实现后续的增改删查工作
 type Cache struct {
 	maxData   int64                         // 允许使用最大内存
 	nowData   int64                         // 当前已使用内存
@@ -13,8 +13,7 @@ type Cache struct {
 	OnEvicted func(key string, value Value) // 某条记录被移除时的回调函数
 }
 
-// entry：双向链表的节点的数据类型
-// 所以我们这次实现的LRU底层结构是双向链表
+// entry：双向链表的节点的数据类型，所以我们这次实现的LRU底层结构是双向链表
 type entry struct {
 	// 在链表中仍保存每个值对应的 key 的好处在于：淘汰队首节点时，需要用 key 从字典中删除对应的映射
 	key   string
@@ -27,8 +26,7 @@ type Value interface {
 	Len() int
 }
 
-// New：方便实例化Cache，实现New函数
-// 传入参数有maxData，和一个onEvicted 方法
+// New：实现 New 函数，方便实例化Cache
 func New(maxData int64, onEvicted func(string, Value)) *Cache {
 	return &Cache{
 		maxData:   maxData,
@@ -38,9 +36,7 @@ func New(maxData int64, onEvicted func(string, Value)) *Cache {
 	}
 }
 
-// Get：实现获取功能
-// 根据key进行value的查找，并返回一个是否查找成功的标志
-// 根据LRU，将查找之后的节点移动到维护的双向队列的队尾（最久没有访问的放到队头）
+// Get：实现缓存数据获取功能，根据key进行value的查找，并返回一个是否查找成功的标志
 func (c *Cache) Get(key string) (value Value, ok bool) {
 	// 1.第一步是从字典中找到对应的双向链表的节点
 	if ele, ok := c.cache[key]; ok {
@@ -52,8 +48,7 @@ func (c *Cache) Get(key string) (value Value, ok bool) {
 	return
 }
 
-// RemoveOldest ：实现删除功能
-// 根据LRU，移除最近最少访问节点即可，即移除队首元素即可
+// RemoveOldest ：实现删除功能，根据LRU，移除最近最少访问节点即可，即移除队首元素即可
 func (c *Cache) RemoveOldest() {
 	ele := c.list.Back() // 取队首节点
 	if ele != nil {
@@ -67,7 +62,7 @@ func (c *Cache) RemoveOldest() {
 	}
 }
 
-// 实现新增/修改功能
+// Add：实现新增/修改功能
 func (c *Cache) Add(key string, value Value) {
 	// 1.1 如果key在Map中存在，则更新对应节点的值，并将该节点移到队尾。
 	if ele, ok := c.cache[key]; ok {
@@ -88,7 +83,7 @@ func (c *Cache) Add(key string, value Value) {
 	}
 }
 
-// 获取Cache添加了多少条数据
+// Len：获取Cache添加了多少条数据
 func (c *Cache) Len() int {
 	return c.list.Len()
 }
