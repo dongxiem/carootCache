@@ -13,7 +13,9 @@ var db = map[string]string{
 	"Sam":  "567",
 }
 
+// TestGetter：测试 Getter 接口
 func TestGetter(t *testing.T) {
+	// 首先进行 Getter 的函数声明
 	var f Getter = GetterFunc(func(key string) ([]byte, error) {
 		return []byte(key), nil
 	})

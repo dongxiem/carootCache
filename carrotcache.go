@@ -5,7 +5,7 @@ import (
 	"github.com/Dongxiem/carrotCache/byteview"
 	pb "github.com/Dongxiem/carrotCache/cachepb"
 	concurrentcache "github.com/Dongxiem/carrotCache/concurrentcache"
-	peers2 "github.com/Dongxiem/carrotCache/peers"
+	peers "github.com/Dongxiem/carrotCache/peers"
 	"github.com/Dongxiem/carrotCache/singleflight"
 	"log"
 	"sync"
@@ -16,20 +16,22 @@ type Group struct {
 	name      string      // 每个 Group 拥有一个唯一的名称 name
 	getter    Getter      // 缓存未命中时获取源数据的回调(callback)
 	mainCache concurrentcache.Cache // 一开始实现的并发缓存
-	peers     peers2.PeerPicker
+	peers     peers.PeerPicker
 	// 使用 singleflight.Group 来确保每个 key 仅被提取一次
 	loader *singleflight.Group	// 用于防止缓存击穿
 }
 
-// Getter：回调接口定义
+// Getter：回调接口定义，只包含一个方法 Get
+// 既能够将普通的函数类型（需类型转换）作为参数，也可以将结构体作为参数，使用更为灵活，可读性也更好，这就是接口型函数的价值。
 type Getter interface {
 	Get(key string) ([]byte, error)
 }
 
-// GetterFunc：定义函数类型，GetterFunc 通过函数实现 Getter。
+// GetterFunc：定义函数类型，GetterFunc 参数和返回值与 Getter 中 Get 方法是一致的。
 type GetterFunc func(key string) ([]byte, error)
 
-// Get：回调函数 Get(key string)([]byte, error)，参数是 key，返回值是 []byte
+// Get：GetterFunc 还定义了 Get 方式，并在 Get 方法中调用自己，这样就实现了接口 Getter。
+// 所以 GetterFunc 是一个实现了接口的函数类型，简称为接口型函数。
 func (f GetterFunc) Get(key string) ([]byte, error) {
 	return f(key)
 }
@@ -84,7 +86,7 @@ func (g *Group) Get(key string) (byteview.ByteView, error) {
 }
 
 // RegisterPeers：该方法实现了 PeerPicker 接口的 HTTPPool 注入到 Group 中
-func (g *Group) RegisterPeers(peers peers2.PeerPicker) {
+func (g *Group) RegisterPeers(peers peers.PeerPicker) {
 	// 如果原来的 group 已存在 peers，即此时重复注册，则会 panic
 	if g.peers != nil {
 		panic("RegisterPeerPicker called more than once")
@@ -140,7 +142,7 @@ func (g *Group) getLocally(key string) (byteview.ByteView, error) {
 }
 
 // getFromPeer：使用实现了 PeerGetter 接口的 httpGetter 从访问远程节点，获取缓存值。
-func (g *Group) getFromPeer(peer peers2.PeerGetter, key string) (byteview.ByteView, error) {
+func (g *Group) getFromPeer(peer peers.PeerGetter, key string) (byteview.ByteView, error) {
 	// 首先进行 Request 的注册
 	req := &pb.Request{
 		Group: g.name,
