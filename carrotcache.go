@@ -8,17 +8,43 @@ import (
 	peers "github.com/Dongxiem/carrotCache/peers"
 	"github.com/Dongxiem/carrotCache/singleflight"
 	"log"
+	"math"
 	"sync"
+	"sync/atomic"
+	"time"
 )
+
+//每分钟远程获取的QPS上限
+const maxMinuteRemoteQPS = 10
 
 // 一个 Group 可以认为是一个缓存的命名空间，主要负责与外部交互，控制缓存存储和获取的主流程
 type Group struct {
-	name      string      // 每个 Group 拥有一个唯一的名称 name
-	getter    Getter      // 缓存未命中时获取源数据的回调(callback)
-	mainCache concurrentcache.Cache // 一开始实现的并发缓存
+	name      string      				// 每个 Group 拥有一个唯一的名称 name
+	getter    Getter      				// 缓存未命中时获取源数据的回调(callback)
+	mainCache concurrentcache.Cache 	// 一开始实现的并发缓存
+	hotCache  concurrentcache.Cache 	// 热点数据
 	peers     peers.PeerPicker
-	// 使用 singleflight.Group 来确保每个 key 仅被提取一次
-	loader *singleflight.Group	// 用于防止缓存击穿
+	loader *singleflight.Group			// 用于防止缓存击穿，确保高并发下每个 key 仅被提取一次
+	keys map[string]*KeyStats 			// KeyStats映射
+}
+
+// 封装一个原子类
+type AtomicInt int64
+
+// Add：原子自增
+func (i *AtomicInt) Add(n int64) {
+	atomic.AddInt64((*int64)(i), n)
+}
+
+// Get：原子读取
+func (i *AtomicInt) Get() int64 {
+	return atomic.LoadInt64((*int64)(i))
+}
+
+// KeyStats：Key的统计信息
+type KeyStats struct {
+	firstGetTime time.Time
+	remoteCnt    AtomicInt //利用atomic包封装的原子类
 }
 
 // Getter：回调接口定义，只包含一个方法 Get
@@ -78,9 +104,16 @@ func (g *Group) Get(key string) (byteview.ByteView, error) {
 
 	// 从 mainCache 中查找缓存，如果存在则缓存命中，并且返回缓存值
 	if v, ok := g.mainCache.Get(key); ok {
-		log.Println("[GoCache] hit")
+		log.Println("[carrotCache] hit")
 		return v, nil
 	}
+
+	// 从 hotCache 中进行请求查找
+	if v, ok := g.hotCache.Get(key); ok {
+		log.Printf("[carrotCache (hotCache)] hit")
+		return v, nil
+	}
+
 	// 如果缓存中不存在，则调用 load 方法去远程节点进行数据的获取，实在没有再去数据库进行数据获取，最后添加到缓存当中。
 	return g.load(key)
 }
@@ -121,10 +154,10 @@ func (g *Group) load(key string) (value byteview.ByteView, err error) {
 	return
 }
 
-// populateCache：添加数据进cache
-func (g *Group) populateCache(key string, value byteview.ByteView) {
+// populateCache：添加数据进指定的 cache（mainCache/hotCache）
+func (g *Group) populateCache(key string, value byteview.ByteView, c *concurrentcache.Cache) {
 	// 添加到当前group对应的cache中
-	g.mainCache.Add(key, value)
+	c.Add(key, value)
 }
 
 // getLocally：缓存不存在时，调用回调函数获取源数据
@@ -137,7 +170,7 @@ func (g *Group) getLocally(key string) (byteview.ByteView, error) {
 	// 通过 ByteView 中的 cloneBytes 方法进行拷贝数据赋值给 value，不要影响到原数据
 	value := byteview.ByteView{B: byteview.CloneBytes(bytes)}
 	// 并且将源数据添加到缓存 mainCache 中，下次再进行 key 的获取就可以从缓存中查找到了
-	g.populateCache(key, value)
+	g.populateCache(key, value, &g.mainCache)
 	return value, nil
 }
 
@@ -152,9 +185,33 @@ func (g *Group) getFromPeer(peer peers.PeerGetter, key string) (byteview.ByteVie
 	res := &pb.Response{}
 	// 根据 req 获取相对应的 res
 	err := peer.Get(req, res)
+	fmt.Println("getFromPeer", key)
 	if err != nil {
 		return byteview.ByteView{}, err
 	}
+
+	// 远程获取cnt++
+	if stat, ok := g.keys[key]; ok {
+		stat.remoteCnt.Add(1)
+		// 计算 QPS
+		interval := float64(time.Now().Unix()-stat.firstGetTime.Unix()) / 60
+		qps := stat.remoteCnt.Get() / int64(math.Max(1, math.Round(interval)))
+		if qps >= maxMinuteRemoteQPS {
+			// 存入 hotCache
+			g.populateCache(key, byteview.ByteView{B : res.Value}, &g.hotCache)
+			// 删除映射关系,节省内存
+			mu.Lock()
+			delete(g.keys, key)
+			mu.Unlock()
+		}
+	} else {
+		// 如果是第一次获取
+		g.keys[key] = &KeyStats {
+			firstGetTime: time.Now(),
+			remoteCnt:    1,
+		}
+	}
+
 	// 将该 res.Value 转为 []byte 并且进行返回
 	return byteview.ByteView{B: res.Value}, nil
 }
