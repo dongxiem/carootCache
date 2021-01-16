@@ -1,4 +1,4 @@
-package carrotCache
+package carrotcache
 
 import (
 	"fmt"

@@ -1,6 +1,6 @@
 package peers
 
-import pb "github.com/Dongxiem/carrotCache/cachepb"
+import pb "github.com/Dongxiem/carrotCache/carrotcache/cachepb"
 
 // PeerPicker：这是一个接口，根据传入的 key 选择相应节点 PeerGetter。
 type PeerPicker interface {

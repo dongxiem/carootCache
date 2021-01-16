@@ -1,12 +1,12 @@
-package carrotCache
+package carrotcache
 
 import (
 	"fmt"
-	"github.com/Dongxiem/carrotCache/byteview"
-	pb "github.com/Dongxiem/carrotCache/cachepb"
-	concurrentcache "github.com/Dongxiem/carrotCache/concurrentcache"
-	peers "github.com/Dongxiem/carrotCache/peers"
-	"github.com/Dongxiem/carrotCache/singleflight"
+	"github.com/Dongxiem/carrotCache/carrotcache/byteview"
+	pb "github.com/Dongxiem/carrotCache/carrotcache/cachepb"
+	concurrentcache "github.com/Dongxiem/carrotCache/carrotcache/concurrentcache"
+	peers "github.com/Dongxiem/carrotCache/carrotcache/peers"
+	"github.com/Dongxiem/carrotCache/carrotcache/singleflight"
 	"log"
 	"math"
 	"sync"
@@ -19,13 +19,13 @@ const maxMinuteRemoteQPS = 10
 
 // 一个 Group 可以认为是一个缓存的命名空间，主要负责与外部交互，控制缓存存储和获取的主流程
 type Group struct {
-	name      string      				// 每个 Group 拥有一个唯一的名称 name
-	getter    Getter      				// 缓存未命中时获取源数据的回调(callback)
-	mainCache concurrentcache.Cache 	// 一开始实现的并发缓存
-	hotCache  concurrentcache.Cache 	// 热点数据
+	name      string                // 每个 Group 拥有一个唯一的名称 name
+	getter    Getter                // 缓存未命中时获取源数据的回调(callback)
+	mainCache concurrentcache.Cache // 一开始实现的并发缓存
+	hotCache  concurrentcache.Cache // 热点数据
 	peers     peers.PeerPicker
-	loader *singleflight.Group			// 用于防止缓存击穿，确保高并发下每个 key 仅被提取一次
-	keys map[string]*KeyStats 			// KeyStats映射
+	loader    *singleflight.Group  // 用于防止缓存击穿，确保高并发下每个 key 仅被提取一次
+	keys      map[string]*KeyStats // KeyStats映射
 }
 
 // 封装一个原子类
@@ -68,7 +68,7 @@ var (
 )
 
 // NewGroup： 创建一个新的Group实例
-func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
+func NewGroup(name string, cacheByte int64, getter Getter) *Group {
 	// 回调函数为空则报错
 	if getter == nil {
 		panic("nil Getter")
@@ -79,8 +79,10 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 	g := &Group{
 		name:      name,
 		getter:    getter,
-		mainCache: concurrentcache.Cache{CacheBytes: cacheBytes},
+		mainCache: concurrentcache.Cache{CacheBytes: cacheByte * 7 / 8},
+		hotCache:  concurrentcache.Cache{CacheBytes: cacheByte * 7 / 8},
 		loader:    &singleflight.Group{},
+		keys:      map[string]*KeyStats{},
 	}
 	groups[name] = g
 	return g
@@ -206,7 +208,7 @@ func (g *Group) getFromPeer(peer peers.PeerGetter, key string) (byteview.ByteVie
 		}
 	} else {
 		// 如果是第一次获取
-		g.keys[key] = &KeyStats {
+		g.keys[key] = &KeyStats{
 			firstGetTime: time.Now(),
 			remoteCnt:    1,
 		}

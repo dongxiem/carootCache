@@ -1,18 +1,11 @@
 package main
 
-/*
-$ curl "http://localhost:9999/api?key=Tom"
-630
-
-$ curl "http://localhost:9999/api?key=kkk"
-kkk not exist
-*/
 
 import (
 	"flag"
 	"fmt"
-	"github.com/Dongxiem/carrotCache"
-	h "github.com/Dongxiem/carrotCache/http"
+	"github.com/Dongxiem/carrotCache/carrotcache"
+	h "github.com/Dongxiem/carrotCache/carrotcache/http"
 	"log"
 	"net/http"
 )
@@ -26,9 +19,9 @@ var db = map[string]string{
 }
 
 // createGroup: 创建 Group
-func createGroup() *carrotCache.Group {
+func createGroup() *carrotcache.Group {
 	// 注意：carrotCache.GetterFunc 是回调函数。
-	return carrotCache.NewGroup("scores", 2<<10, carrotCache.GetterFunc(
+	return carrotcache.NewGroup("scores", 2<<10, carrotcache.GetterFunc(
 		func(key string) ([]byte, error) {
 			log.Println("[SlowDB] search key", key)
 			if v, ok := db[key]; ok {
@@ -39,7 +32,7 @@ func createGroup() *carrotCache.Group {
 }
 
 // startCacheServer： 开启 Cache 服务
-func startCacheServer(addr string, addrs []string, cache *carrotCache.Group) {
+func startCacheServer(addr string, addrs []string, cache *carrotcache.Group) {
 	// 根据传递进来的地址 addr 创建一个新的 HTTP 池
 	peers := h.NewHTTPPool(addr)
 	// 对 peers 添加地址，该 addrs 是一串地址，为字符串切片
@@ -51,7 +44,7 @@ func startCacheServer(addr string, addrs []string, cache *carrotCache.Group) {
 }
 
 // startAPIServer： 开启 API 服务
-func startAPIServer(apiAddr string, cache *carrotCache.Group) {
+func startAPIServer(apiAddr string, cache *carrotcache.Group) {
 	// 进行 http.Handle 处理
 	http.Handle("/api", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -79,24 +72,24 @@ func startAPIServer(apiAddr string, cache *carrotCache.Group) {
 func main() {
 	var port int
 	var api bool
-	flag.IntVar(&port, "port", 8001, "carrotCache server port")
+	flag.IntVar(&port, "port", 8051, "carrotCache server port")
 	flag.BoolVar(&api, "api", false, "Start a api server?")
 	flag.Parse()
 
-	apiAddr := "http://localhost:9999"
+	apiAddr := "http://localhost:9994"
 	addrMap := map[int]string{
-		8001: "http://localhost:8011",
-		8002: "http://localhost:8012",
-		8003: "http://localhost:8013",
+		8051: "http://localhost:8051",
+		8052: "http://localhost:8052",
+		8053: "http://localhost:8053",
 	}
 
 	var addrs []string
 	for _, v := range addrMap {
 		addrs = append(addrs, v)
 	}
-
 	cache := createGroup()
 	if api {
+		//带 api 参数的就是本机 self
 		go startAPIServer(apiAddr, cache)
 	}
 	startCacheServer(addrMap[port], addrs, cache)

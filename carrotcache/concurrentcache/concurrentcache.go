@@ -1,8 +1,8 @@
 package concurrentcache
 
 import (
-	"github.com/Dongxiem/carrotCache/byteview"
-	"github.com/Dongxiem/carrotCache/lru"
+	"github.com/Dongxiem/carrotCache/carrotcache/byteview"
+	"github.com/Dongxiem/carrotCache/carrotcache/lru"
 	"sync"
 )
 
