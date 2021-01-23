@@ -2,7 +2,7 @@ package singleflight
 
 import "sync"
 
-// call 代表正在进行中，或已经结束的请求。使用 sync.WaitGroup 避免重入
+// call：代表正在进行中，或已经结束的请求。使用 sync.WaitGroup 避免重入
 type call struct {
 	wg  sync.WaitGroup	// 用于阻塞这个调用 call 的其他请求
 	val interface{}		// 函数执行后的结果
@@ -13,10 +13,10 @@ type call struct {
 // Group 是 singleflight 的主数据结构，管理不同 key 的请求(call)
 type Group struct {
 	mu sync.Mutex       // 保护 m
-	m  map[string]*call // 懒加载
+	m  map[string]*call // 懒加载，键是 string，值是 call 结构体
 }
 
-// Do 执行并返回给定函数的结果，确保一次仅对给定键进行一次执行。
+// Do：执行并返回给定函数的结果，确保一次仅对给定键进行一次执行。
 // 如果出现重复请求尽量，则重复的 caller 将等待原始请求完成并收到相同的结果。
 // 并发协程之间不需要消息传递，非常适合 sync.WaitGroup。
 // 	wg.Add(1) 计数加1。
@@ -50,7 +50,7 @@ func (g *Group) Do(key string, fn func() (interface{}, error)) (interface{}, err
 	c.wg.Done()
 
 	g.mu.Lock()
-	// 重新上锁，将该 key 剔除，下一个 key 进来可以进行访问了
+	// 重新上锁，并将该 key 剔除，下一个 key 进来可以进行访问了
 	delete(g.m, key)
 	g.mu.Unlock()
 	// 返回结果

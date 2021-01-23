@@ -20,13 +20,15 @@ var db = map[string]string{
 
 // createGroup: 创建 Group
 func createGroup() *carrotcache.Group {
-	// 注意：carrotCache.GetterFunc 是回调函数。
+	// 注意：记得写上回调函数
 	return carrotcache.NewGroup("scores", 2<<10, carrotcache.GetterFunc(
 		func(key string) ([]byte, error) {
 			log.Println("[SlowDB] search key", key)
+			// 如果在 db 源数据中根据 key 找到了对应的数据，则返回这个数据切片
 			if v, ok := db[key]; ok {
 				return []byte(v), nil
 			}
+			// 如果找不到则返回 nil 及错误
 			return nil, fmt.Errorf("%s not exist", key)
 		}))
 }
@@ -87,10 +89,13 @@ func main() {
 	for _, v := range addrMap {
 		addrs = append(addrs, v)
 	}
+	// 先创建 Cache
 	cache := createGroup()
 	if api {
 		//带 api 参数的就是本机 self
+		// 开启 API 服务
 		go startAPIServer(apiAddr, cache)
 	}
+	// 开启换粗服务
 	startCacheServer(addrMap[port], addrs, cache)
 }

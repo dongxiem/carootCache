@@ -22,7 +22,7 @@ func (c *Cache) Add(key string, value byteview.ByteView) {
 	if c.lru == nil {
 		c.lru = lru.New(c.CacheBytes, nil)
 	}
-	// 已经实例化了之后将数据进行添加进lru
+	// 已经实例化了之后将数据进行添加进 lru
 	c.lru.Add(key, value)
 }
 
@@ -33,7 +33,7 @@ func (c *Cache) Get(key string) (value byteview.ByteView, ok bool) {
 	if c.lru == nil {
 		return
 	}
-	// 去lru当中找，找到则返回ByteView的只读数据
+	// 去 lru 当中找，找到则返回 ByteView 的只读数据
 	if v, ok := c.lru.Get(key); ok {
 		return v.(byteview.ByteView), ok
 	}

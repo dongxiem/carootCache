@@ -15,17 +15,17 @@ import (
 )
 
 //每分钟远程获取的QPS上限
-const maxMinuteRemoteQPS = 10
+const maxMinuteRemoteQPS = 100
 
 // 一个 Group 可以认为是一个缓存的命名空间，主要负责与外部交互，控制缓存存储和获取的主流程
 type Group struct {
-	name      string                // 每个 Group 拥有一个唯一的名称 name
-	getter    Getter                // 缓存未命中时获取源数据的回调(callback)
-	mainCache concurrentcache.Cache // 一开始实现的并发缓存
-	hotCache  concurrentcache.Cache // 热点数据
-	peers     peers.PeerPicker
-	loader    *singleflight.Group  // 用于防止缓存击穿，确保高并发下每个 key 仅被提取一次
-	keys      map[string]*KeyStats // KeyStats映射
+	name      string                	// 每个 Group 拥有一个唯一的名称 name
+	getter    Getter                	// 缓存未命中时获取源数据的回调(callback)
+	mainCache concurrentcache.Cache 	// 一开始实现的并发缓存
+	hotCache  concurrentcache.Cache 	// 热点数据
+	peers     peers.PeerPicker			// 节点
+	loader    *singleflight.Group  		// 用于防止缓存击穿，确保高并发下每个 key 仅被提取一次
+	keys      map[string]*KeyStats 		// KeyStats映射
 }
 
 // 封装一个原子类
@@ -69,18 +69,19 @@ var (
 
 // NewGroup： 创建一个新的Group实例
 func NewGroup(name string, cacheByte int64, getter Getter) *Group {
-	// 回调函数为空则报错
+	// 如果回调函数为空则报错
 	if getter == nil {
 		panic("nil Getter")
 	}
+	// 以下为并发操作
 	mu.Lock()
 	defer mu.Unlock()
 	// 进行 Group 的注册
 	g := &Group{
 		name:      name,
 		getter:    getter,
-		mainCache: concurrentcache.Cache{CacheBytes: cacheByte * 7 / 8},
-		hotCache:  concurrentcache.Cache{CacheBytes: cacheByte * 7 / 8},
+		mainCache: concurrentcache.Cache{CacheBytes: cacheByte * 7 / 8},	// mainCache 为 cacheByte 的 7/8
+		hotCache:  concurrentcache.Cache{CacheBytes: cacheByte / 8},		// hotCache 为 cacheByet 的 1/8
 		loader:    &singleflight.Group{},
 		keys:      map[string]*KeyStats{},
 	}
@@ -97,7 +98,7 @@ func GetGroup(name string) *Group {
 	return g
 }
 
-// Get： 通过 key 去 cache 取相对应的 value
+// Get：通过 key 去 cache 取相对应的 value
 func (g *Group) Get(key string) (byteview.ByteView, error) {
 	// 如果 key为空，返回空的 ByteView，然后再返回一个 Error
 	if key == "" {
@@ -126,7 +127,7 @@ func (g *Group) RegisterPeers(peers peers.PeerPicker) {
 	if g.peers != nil {
 		panic("RegisterPeerPicker called more than once")
 	}
-	// 进行注入
+	// 进行写入
 	g.peers = peers
 }
 

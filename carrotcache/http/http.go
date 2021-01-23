@@ -46,12 +46,12 @@ func NewHTTPPool(self string) *HTTPPool {
 	}
 }
 
-// Log ：日志打印
+// Log：日志打印
 func (p *HTTPPool) Log(format string, v ...interface{}) {
 	log.Printf("[Server %s] %s", p.self, fmt.Sprintf(format, v...))
 }
 
-// ServeHTTP ：进行所有http请求的处理
+// ServeHTTP：启动 server 服务器，进行所有 http 请求的处理
 func (p *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// 首先判断访问路径的前缀是否是 basePath，不是返回错误
 	if !strings.HasPrefix(r.URL.Path, p.basePath) {
@@ -108,10 +108,12 @@ func (p *HTTPPool) Set(peers ...string) {
 	}
 }
 
-// PickPeer : 根据传入的key挑选一个节点
+// PickPeer: 根据传入的key挑选一个节点
 func (p *HTTPPool) PickPeer(key string) (peers.PeerGetter, bool) {
+	// 并发操作
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	// 根据一致性哈希算法进行节点挑选
 	if peer := p.peers.Get(key); peer != "" && peer != p.self {
 		p.Log("Pick peer %s", peer)
 		return p.httpGetters[peer], true
@@ -121,11 +123,12 @@ func (p *HTTPPool) PickPeer(key string) (peers.PeerGetter, bool) {
 
 var _ peers.PeerPicker = (*HTTPPool)(nil)
 
+// httpGetter：存储的是 URL
 type httpGetter struct {
 	baseURL string
 }
 
-// Get : 数据获取
+// Get: 数据获取
 func (h *httpGetter) Get(in *pb.Request, out *pb.Response) error {
 	u := fmt.Sprintf(
 		"%v%v/%v",
@@ -144,7 +147,7 @@ func (h *httpGetter) Get(in *pb.Request, out *pb.Response) error {
 		return fmt.Errorf("server returned: %v", res.Status)
 	}
 
-	// 转换为 []bytes 类型
+	// 将消息转换为 []bytes 类型
 	bytes, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return fmt.Errorf("reading response body: %v", err)

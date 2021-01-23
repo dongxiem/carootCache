@@ -26,6 +26,7 @@ func TestGetter(t *testing.T) {
 	}
 }
 
+// TestGet：测试 Get 方法
 func TestGet(t *testing.T) {
 	loadCounts := make(map[string]int, len(db))
 	gee := NewGroup("scores", 2<<10, GetterFunc(
@@ -55,6 +56,7 @@ func TestGet(t *testing.T) {
 	}
 }
 
+// TestGetGroup：测试取得 Group
 func TestGetGroup(t *testing.T) {
 	groupName := "scores"
 	NewGroup(groupName, 2<<10, GetterFunc(

@@ -26,7 +26,7 @@ type Value interface {
 	Len() int
 }
 
-// New：实现 New 函数，方便实例化Cache
+// New：实现 New 函数，方便根据参数实例化Cache
 func New(maxData int64, onEvicted func(string, Value)) *Cache {
 	return &Cache{
 		maxData:   maxData,
@@ -54,9 +54,12 @@ func (c *Cache) RemoveOldest() {
 	if ele != nil {
 		c.list.Remove(ele)
 		kv := ele.Value.(*entry)
-		delete(c.cache, kv.key)                                 // 从map中删除该节点的映射关系
-		c.nowData -= int64(len(kv.key)) + int64(kv.value.Len()) // 更新内存
-		if c.OnEvicted != nil {                                 // 若回调函数不为nil，则调用回调函数
+		// 从map中删除该节点的映射关系
+		delete(c.cache, kv.key)
+		// 更新内存值
+		c.nowData -= int64(len(kv.key)) + int64(kv.value.Len())
+		// 若回调函数不为nil，则调用回调函数
+		if c.OnEvicted != nil {
 			c.OnEvicted(kv.key, kv.value)
 		}
 	}
@@ -72,9 +75,11 @@ func (c *Cache) Add(key string, value Value) {
 		kv.value = value
 	} else {
 		// 1.2 如果key在Map不存在，则向队尾进行添加新节点，并在Map中添加映射关系
-		ele := c.list.PushFront(&entry{key, value})       // 添加新节点
-		c.cache[key] = ele                                // 添加Map映射关系
-		c.nowData += int64(len(key)) + int64(value.Len()) // 更新内存
+		ele := c.list.PushFront(&entry{key, value})
+		// 添加Map映射关系
+		c.cache[key] = ele
+		// 更新内存
+		c.nowData += int64(len(key)) + int64(value.Len())
 	}
 
 	// 2.更新 c.nbytes，如果超过了设定的最大值 c.maxBytes，则移除最少访问的节点。
@@ -83,7 +88,7 @@ func (c *Cache) Add(key string, value Value) {
 	}
 }
 
-// Len：获取Cache添加了多少条数据
+// Len：获取 Cache 添加了多少条数据
 func (c *Cache) Len() int {
 	return c.list.Len()
 }
