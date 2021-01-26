@@ -74,15 +74,15 @@ func startAPIServer(apiAddr string, cache *carrotcache.Group) {
 func main() {
 	var port int
 	var api bool
-	flag.IntVar(&port, "port", 8051, "carrotCache server port")
+	flag.IntVar(&port, "port", 8001, "carrotCache server port")
 	flag.BoolVar(&api, "api", false, "Start a api server?")
 	flag.Parse()
 
-	apiAddr := "http://localhost:9994"
+	apiAddr := "http://localhost:9999"
 	addrMap := map[int]string{
-		8051: "http://localhost:8051",
-		8052: "http://localhost:8052",
-		8053: "http://localhost:8053",
+		8051: "http://localhost:8001",
+		8052: "http://localhost:8002",
+		8053: "http://localhost:8003",
 	}
 
 	var addrs []string
